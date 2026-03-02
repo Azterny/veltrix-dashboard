@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veltrix Control Panel</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 800px; width: 100%; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .stat-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-box span { display: block; font-size: 1.2rem; font-weight: bold; margin-top: 5px; color: var(--primary); }
+        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        input { padding: 10px; border-radius: 6px; border: none; width: calc(100% - 20px); margin-bottom: 10px; background: #334155; color: white; }
+        .flex-input { display: flex; gap: 10px; }
+        .flex-input input { margin-bottom: 0; }
+        #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="card" style="width: 300px; text-align: center;">
+            <h2>Connexion</h2>
+            <input type="password" id="pwd" placeholder="Mot de passe API">
+            <button onclick="login()">Se connecter</button>
+        </div>
+    </div>
+
+    <div class="container" id="dashboard" style="display: none;">
+        <h1>🎛️ Veltrix Dashboard</h1>
+
+        <div class="card">
+            <h3>📊 Système Raspberry Pi</h3>
+            <div class="grid">
+                <div class="stat-box">Statut Bot <span id="s-bot">Chargement...</span></div>
+                <div class="stat-box">Uptime Bot <span id="s-uptime">-</span></div>
+                <div class="stat-box">Stockage <span id="s-storage">-</span></div>
+                <div class="stat-box">RAM Utilisée <span id="s-ram">-</span></div>
+                <div class="stat-box">Charge CPU <span id="s-cpu">-</span></div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>🤖 Contrôle du Bot</h3>
+                <button class="btn-success" onclick="action('start')" style="margin-bottom:10px;">▶ Démarrer</button>
+                <button class="btn-danger" onclick="action('stop')" style="margin-bottom:10px;">⏹ Arrêter</button>
+                <button onclick="action('restart')">🔄 Redémarrer</button>
+            </div>
+
+            <div class="card">
+                <h3>⏱️ Planification</h3>
+                <label>Arrêter le bot dans X minutes :</label>
+                <div class="flex-input" style="margin-bottom:15px; margin-top:5px;">
+                    <input type="number" id="in-min" placeholder="Minutes">
+                    <button onclick="schedule('stopIn', 'in-min')">Go</button>
+                </div>
+                <label>Arrêter le bot pendant X minutes :</label>
+                <div class="flex-input" style="margin-top:5px;">
+                    <input type="number" id="for-min" placeholder="Minutes">
+                    <button onclick="schedule('stopFor', 'for-min')">Go</button>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
+                <h3>⚠️ Système</h3>
+                <button class="btn-danger" onclick="rebootPi()">🛑 Redémarrer le Raspberry Pi (Reboot)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // METS L'URL CLOUDFLARE DE TON API ICI :
+        const API_URL = "https://api.brawl-track.com/api"; 
+        
+        let token = localStorage.getItem('veltrix_pwd') || "";
+
+        if(token) showDashboard();
+
+        function login() {
+            token = document.getElementById('pwd').value;
+            localStorage.setItem('veltrix_pwd', token);
+            showDashboard();
+        }
+
+        function showDashboard() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            fetchStats();
+            setInterval(fetchStats, 10000); // Actualise toutes les 10 secondes
+        }
+
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: { 'Authorization': token, 'Content-Type': 'application/json' } };
+            if(body) options.body = JSON.stringify(body);
+            
+            try {
+                const res = await fetch(API_URL + endpoint, options);
+                if (res.status === 401) {
+                    alert("Mot de passe invalide ou expiré !");
+                    localStorage.removeItem('veltrix_pwd');
+                    location.reload();
+                    return null;
+                }
+                return await res.json();
+            } catch (err) {
+                console.error(err);
+                return null;
+            }
+        }
+
+        async function fetchStats() {
+            const data = await apiCall('/stats');
+            if (data && !data.error) {
+                document.getElementById('s-bot').innerText = data.botStatus;
+                document.getElementById('s-bot').style.color = data.botStatus === 'En ligne' ? 'var(--success)' : 'var(--danger)';
+                document.getElementById('s-uptime').innerText = data.botUptime;
+                document.getElementById('s-storage').innerText = data.storage;
+                document.getElementById('s-ram').innerText = data.ram;
+                document.getElementById('s-cpu').innerText = data.cpu;
+            }
+        }
+
+        async function action(act) {
+            const data = await apiCall('/action', 'POST', { action: act });
+            if(data) { alert(data.message); fetchStats(); }
+        }
+
+        async function schedule(type, inputId) {
+            const minutes = document.getElementById(inputId).value;
+            if(!minutes || minutes <= 0) return alert("Mets un nombre de minutes valide.");
+            const data = await apiCall('/schedule', 'POST', { type, minutes: Number(minutes) });
+            if(data) { alert(data.message); document.getElementById(inputId).value = ''; }
+        }
+
+        async function rebootPi() {
+            if(confirm("Es-tu sûr de vouloir redémarrer complètement le Raspberry Pi ? Tu seras déconnecté un instant.")) {
+                await apiCall('/action', 'POST', { action: 'reboot' });
+                alert("Redémarrage en cours... Actualise dans 1 minute.");
+            }
+        }
+    </script>
+</body>
+</html>
