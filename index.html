@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veltrix Bot | Dashboard</title>
     <style>
+        * { box-sizing: border-box; }
+        
         :root {
             --bg-main: #1e1e2e;
             --bg-card: #313244;
@@ -12,243 +14,222 @@
             --accent: #89b4fa;
             --success: #a6e3a1;
             --danger: #f38ba8;
+            --warning: #f9e2af;
             --border: #45475a;
         }
 
+        /* Hauteur fixe 100vh + flexbox pour ne pas déborder de l'écran */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             background-color: var(--bg-main);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 15px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        /* --- STYLES DU LOGIN --- */
-        #login-section {
-            max-width: 400px;
-            margin: 100px auto;
-            text-align: center;
-        }
-
-        input[type="password"] {
-            width: 80%;
-            padding: 10px;
-            margin: 15px 0;
-            border-radius: 5px;
-            border: 1px solid var(--border);
-            background-color: var(--bg-main);
-            color: var(--text-main);
-        }
-
-        /* --- STYLES DU DASHBOARD --- */
+        #login-section { max-width: 400px; margin: auto; text-align: center; }
+        input[type="password"] { width: 100%; padding: 10px; margin: 15px 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-main); color: white; }
+        
         #dashboard-section {
-            display: none; /* Caché par défaut */
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            gap: 20px;
-            grid-template-columns: 1fr;
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+            gap: 15px;
         }
 
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--bg-card);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 15px 20px; border-radius: 8px;
         }
-
         h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
 
+        .controls { display: flex; gap: 10px; background-color: var(--bg-card); padding: 10px; border-radius: 8px; justify-content: center; }
+        
+        button {
+            background-color: var(--accent); color: var(--bg-main); border: none;
+            padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        button:hover { opacity: 0.8; }
+        .btn-stop { background-color: var(--danger); }
+        .btn-restart { background-color: var(--warning); color: #111; }
+
+        .panels-container {
+            display: flex; gap: 15px; flex: 1; overflow: hidden;
+        }
+
         .card {
-            background-color: var(--bg-card);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            background-color: var(--bg-card); border-radius: 8px;
+            display: flex; flex-direction: column; flex: 1; overflow: hidden;
         }
 
         .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
+            padding: 15px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
         }
+        .card-header h2 { margin: 0; font-size: 1.1rem; }
 
-        .card-header h2 { margin: 0; font-size: 1.2rem; }
-
-        button {
-            background-color: var(--accent);
-            color: var(--bg-main);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: opacity 0.2s;
+        /* Conteneurs avec Scroll internes */
+        .scroll-area {
+            flex: 1; overflow-y: auto; padding: 15px;
         }
-
-        button:hover { opacity: 0.8; }
 
         .logs-container {
-            background-color: #11111b;
-            color: var(--success);
-            font-family: 'Courier New', Courier, monospace;
-            padding: 15px;
-            border-radius: 5px;
-            height: 300px;
-            overflow-y: auto;
-            font-size: 0.9rem;
-            line-height: 1.4;
+            background-color: #11111b; color: var(--success);
+            font-family: monospace; font-size: 0.9rem; white-space: pre-wrap;
         }
 
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        th { color: var(--accent); }
-        
-        .logout-btn { background-color: var(--danger); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+        th { color: var(--accent); position: sticky; top: 0; background: var(--bg-card); }
     </style>
 </head>
 <body>
 
-    <!-- ÉCRAN DE CONNEXION -->
-    <div id="login-section" class="card">
+    <div id="login-section" class="card" style="padding: 20px; margin-top: 10vh;">
         <h2>Accès Veltrix Dashboard</h2>
         <input type="password" id="password-input" placeholder="Mot de passe API">
-        <br>
         <button onclick="login()">Se connecter</button>
-        <p id="login-error" style="color: var(--danger); display: none; margin-top: 15px;">Mot de passe incorrect ou API inaccessible.</p>
+        <p id="login-error" style="color: var(--danger); display: none;">Mot de passe incorrect.</p>
     </div>
 
-    <!-- DASHBOARD (Caché au départ) -->
-    <div id="dashboard-section" style="display: none;">
+    <div id="dashboard-section">
         <header>
             <h1>Veltrix Dashboard</h1>
-            <button class="logout-btn" onclick="logout()">Déconnexion</button>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span id="status-text">État: Vérification...</span>
+                <button class="btn-stop" onclick="logout()">Déconnexion</button>
+            </div>
         </header>
 
-        <div class="card">
-            <div class="card-header">
-                <h2>Terminal Logs</h2>
-                <button onclick="refreshLogs()">Actualiser les Logs</button>
-            </div>
-            <div class="logs-container" id="logs-window">
-                [SYSTEM] En attente de récupération des logs...
-            </div>
+        <!-- Boutons de gestion -->
+        <div class="controls">
+            <button onclick="sendAction('start')">▶ Démarrer</button>
+            <button class="btn-restart" onclick="sendAction('restart')">↻ Redémarrer</button>
+            <button class="btn-stop" onclick="sendAction('stop')">■ Arrêter</button>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h2>Aperçu de la Base de Données</h2>
-                <button onclick="refreshDB()">Charger la BDD</button>
+        <div class="panels-container">
+            <!-- Zone Logs -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Terminal Logs</h2>
+                    <button onclick="refreshLogs()">Actualiser</button>
+                </div>
+                <div class="scroll-area logs-container" id="logs-window">En attente...</div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Utilisateur</th>
-                        <th>Action</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody id="db-content">
-                    <tr><td colspan="4" style="text-align: center; color: #a6adc8;">Cliquez sur "Charger la BDD"</td></tr>
-                </tbody>
-            </table>
+
+            <!-- Zone BDD -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 id="db-title">Base de Données</h2>
+                    <button onclick="refreshDB()">Actualiser</button>
+                </div>
+                <div class="scroll-area" style="padding: 0;">
+                    <table id="db-table">
+                        <tbody id="db-content">
+                            <tr><td style="padding: 15px;">Cliquez sur Actualiser</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- ADRESSE DE TON API LOCALE ---
-        const API_URL = "https://veltrix.brawl-track.com"; 
+        // === METS LA VRAIE URL DE TON API ICI ===
+        const API_URL = "https://api.ton-domaine.com"; 
 
-        // Vérifie au chargement si on est déjà connecté
-        window.onload = () => {
-            if (sessionStorage.getItem('api_token')) {
-                showDashboard();
-            }
-        };
+        window.onload = () => { if (sessionStorage.getItem('api_token')) showDashboard(); };
 
-        // Fonction de connexion
+        function getAuth() { return { 'Authorization': sessionStorage.getItem('api_token'), 'Content-Type': 'application/json' }; }
+
         async function login() {
             const pwd = document.getElementById('password-input').value;
-            const errorMsg = document.getElementById('login-error');
-            
             try {
-                // On teste le mot de passe en appelant la route des stats
-                const response = await fetch(`${API_URL}/api/stats`, {
-                    headers: { 'Authorization': pwd }
-                });
-
-                if (response.ok) {
+                const res = await fetch(`${API_URL}/api/stats`, { headers: { 'Authorization': pwd } });
+                if (res.ok) {
                     sessionStorage.setItem('api_token', pwd);
-                    errorMsg.style.display = 'none';
+                    document.getElementById('login-error').style.display = 'none';
                     showDashboard();
-                } else {
-                    errorMsg.style.display = 'block';
-                }
-            } catch (error) {
-                errorMsg.style.display = 'block';
-                errorMsg.innerText = "Erreur de connexion au serveur.";
-            }
+                } else document.getElementById('login-error').style.display = 'block';
+            } catch (e) { document.getElementById('login-error').style.display = 'block'; }
         }
 
-        // Fonction de déconnexion
-        function logout() {
-            sessionStorage.removeItem('api_token');
-            document.getElementById('dashboard-section').style.display = 'none';
-            document.getElementById('login-section').style.display = 'block';
-            document.getElementById('password-input').value = '';
-        }
+        function logout() { sessionStorage.removeItem('api_token'); location.reload(); }
 
-        // Affiche le dashboard et charge les données
         function showDashboard() {
             document.getElementById('login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'grid';
-            refreshLogs();
+            document.getElementById('dashboard-section').style.display = 'flex';
+            refreshAll();
         }
 
-        // Récupérer le token pour les requêtes
-        function getAuthHeaders() {
-            return { 'Authorization': sessionStorage.getItem('api_token') };
+        function refreshAll() { refreshLogs(); refreshDB(); refreshStats(); }
+
+        async function refreshStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/stats`, { headers: getAuth() });
+                const data = await res.json();
+                document.getElementById('status-text').innerText = `État: ${data.botStatus} | CPU: ${data.cpu} | RAM: ${data.ram}`;
+            } catch (e) {}
         }
 
-        // Rafraîchir les logs
+        // Envoi des actions (Start/Stop/Restart)
+        async function sendAction(action) {
+            const actionFr = action === 'start' ? 'démarrer' : action === 'stop' ? 'arrêter' : 'redémarrer';
+            if (!confirm(`Voulez-vous vraiment ${actionFr} le bot ?`)) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/action`, { method: 'POST', headers: getAuth(), body: JSON.stringify({ action }) });
+                const data = await res.json();
+                alert(data.message || data.error);
+                setTimeout(refreshAll, 1000); // Rafraîchit après 1s
+            } catch (e) { alert("Erreur d'exécution de l'action."); }
+        }
+
         async function refreshLogs() {
             const logsWindow = document.getElementById('logs-window');
             try {
-                const response = await fetch(`${API_URL}/api/logs`, { headers: getAuthHeaders() });
-                if (response.status === 401) return logout(); // Expulsé si mdp changé
-                
-                const data = await response.json();
-                logsWindow.innerHTML = data.logs.join('<br>');
+                const res = await fetch(`${API_URL}/api/logs`, { headers: getAuth() });
+                if (res.status === 401) return logout();
+                const data = await res.json();
+                logsWindow.innerHTML = data.logs.join('\n');
                 logsWindow.scrollTop = logsWindow.scrollHeight;
-            } catch (error) {
-                logsWindow.innerHTML = "<span style='color: var(--danger);'>[ERREUR] Impossible de lire les logs.</span>";
-            }
+            } catch (e) { logsWindow.innerHTML = "[ERREUR] Impossible de lire les logs."; }
         }
 
-        // Rafraîchir la BDD
+        // DB Auto-adaptative
         async function refreshDB() {
-            const dbContent = document.getElementById('db-content');
-            dbContent.innerHTML = "<tr><td colspan='4'>Chargement en cours...</td></tr>";
-
+            const table = document.getElementById('db-table');
             try {
-                const response = await fetch(`${API_URL}/api/database`, { headers: getAuthHeaders() });
-                if (response.status === 401) return logout();
+                const res = await fetch(`${API_URL}/api/database`, { headers: getAuth() });
+                const data = await res.json();
+                
+                if (data.error) {
+                    table.innerHTML = `<tr><td style="color:var(--danger); padding:15px;">${data.error}</td></tr>`;
+                    return;
+                }
 
-                const data = await response.json();
-                let html = '';
-                data.entries.forEach(row => {
-                    html += `<tr><td>${row.id || '-'}</td><td>${row.user || '-'}</td><td>${row.action || '-'}</td><td>${row.date || '-'}</td></tr>`;
-                });
-                dbContent.innerHTML = html || "<tr><td colspan='4'>La base de données est vide.</td></tr>";
-            } catch (error) {
-                dbContent.innerHTML = "<tr><td colspan='4' style='color: var(--danger);'>Erreur de connexion.</td></tr>";
-            }
+                document.getElementById('db-title').innerText = `Table : ${data.table}`;
+
+                if (data.entries.length === 0) {
+                    table.innerHTML = `<tr><td style="padding:15px;">Table vide.</td></tr>`;
+                    return;
+                }
+
+                // Construit les colonnes HTML dynamiquement
+                const colonnes = Object.keys(data.entries[0]);
+                let thead = '<thead><tr>' + colonnes.map(c => `<th>${c}</th>`).join('') + '</tr></thead>';
+                let tbody = '<tbody>' + data.entries.map(ligne => 
+                    '<tr>' + colonnes.map(c => `<td>${ligne[c]}</td>`).join('') + '</tr>'
+                ).join('') + '</tbody>';
+
+                table.innerHTML = thead + tbody;
+            } catch (e) { table.innerHTML = `<tr><td style="padding:15px; color:var(--danger);">Erreur réseau.</td></tr>`; }
         }
     </script>
 </body>
