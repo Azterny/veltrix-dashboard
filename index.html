@@ -23,7 +23,26 @@
             padding: 20px;
         }
 
-        .container {
+        /* --- STYLES DU LOGIN --- */
+        #login-section {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+        }
+
+        input[type="password"] {
+            width: 80%;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        /* --- STYLES DU DASHBOARD --- */
+        #dashboard-section {
+            display: none; /* Caché par défaut */
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
@@ -42,20 +61,6 @@
         }
 
         h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
-
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: bold;
-        }
-
-        .dot {
-            height: 12px; width: 12px;
-            background-color: var(--success);
-            border-radius: 50%;
-            display: inline-block;
-        }
 
         .card {
             background-color: var(--bg-card);
@@ -88,7 +93,6 @@
 
         button:hover { opacity: 0.8; }
 
-        /* Style pour la console des logs */
         .logs-container {
             background-color: #11111b;
             color: var(--success);
@@ -101,46 +105,41 @@
             line-height: 1.4;
         }
 
-        /* Style pour la base de données */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
         th { color: var(--accent); }
+        
+        .logout-btn { background-color: var(--danger); }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <!-- En-tête -->
+    <!-- ÉCRAN DE CONNEXION -->
+    <div id="login-section" class="card">
+        <h2>Accès Veltrix Dashboard</h2>
+        <input type="password" id="password-input" placeholder="Mot de passe API">
+        <br>
+        <button onclick="login()">Se connecter</button>
+        <p id="login-error" style="color: var(--danger); display: none; margin-top: 15px;">Mot de passe incorrect ou API inaccessible.</p>
+    </div>
+
+    <!-- DASHBOARD (Caché au départ) -->
+    <div id="dashboard-section" style="display: none;">
         <header>
             <h1>Veltrix Dashboard</h1>
-            <div class="status">
-                <span class="dot" id="status-dot"></span>
-                <span id="status-text">Bot En Ligne</span>
-            </div>
+            <button class="logout-btn" onclick="logout()">Déconnexion</button>
         </header>
 
-        <!-- Section Logs -->
         <div class="card">
             <div class="card-header">
                 <h2>Terminal Logs</h2>
                 <button onclick="refreshLogs()">Actualiser les Logs</button>
             </div>
             <div class="logs-container" id="logs-window">
-                [SYSTEM] Initialisation du dashboard...<br>
-                [INFO] En attente de connexion avec l'API...
+                [SYSTEM] En attente de récupération des logs...
             </div>
         </div>
 
-        <!-- Section Base de Données -->
         <div class="card">
             <div class="card-header">
                 <h2>Aperçu de la Base de Données</h2>
@@ -150,17 +149,13 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Utilisateur (Discord)</th>
-                        <th>Action / Commande</th>
+                        <th>Utilisateur</th>
+                        <th>Action</th>
                         <th>Date</th>
                     </tr>
                 </thead>
                 <tbody id="db-content">
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #a6adc8;">
-                            Cliquez sur "Charger la BDD" pour afficher les données.
-                        </td>
-                    </tr>
+                    <tr><td colspan="4" style="text-align: center; color: #a6adc8;">Cliquez sur "Charger la BDD"</td></tr>
                 </tbody>
             </table>
         </div>
@@ -168,48 +163,91 @@
 
     <script>
         // --- ADRESSE DE TON API LOCALE ---
-        // Il faudra remplacer cette URL par l'adresse de ton API sur le PiZero (ex: ton tunnel Cloudflare pour l'API)
         const API_URL = "https://api.ton-domaine.com"; 
 
-        // Fonction pour récupérer les logs
-        async function refreshLogs() {
-            const logsWindow = document.getElementById('logs-window');
-            logsWindow.innerHTML += "<br>[SYS] Récupération des logs...";
+        // Vérifie au chargement si on est déjà connecté
+        window.onload = () => {
+            if (sessionStorage.getItem('api_token')) {
+                showDashboard();
+            }
+        };
+
+        // Fonction de connexion
+        async function login() {
+            const pwd = document.getElementById('password-input').value;
+            const errorMsg = document.getElementById('login-error');
             
             try {
-                // Appel à ton API Node.js (dashboard-api.service)
-                const response = await fetch(`${API_URL}/logs`);
-                const data = await response.json();
-                
-                logsWindow.innerHTML = data.logs.join('<br>');
-                // Scroll tout en bas automatiquement
-                logsWindow.scrollTop = logsWindow.scrollHeight;
+                // On teste le mot de passe en appelant la route des stats
+                const response = await fetch(`${API_URL}/api/stats`, {
+                    headers: { 'Authorization': pwd }
+                });
+
+                if (response.ok) {
+                    sessionStorage.setItem('api_token', pwd);
+                    errorMsg.style.display = 'none';
+                    showDashboard();
+                } else {
+                    errorMsg.style.display = 'block';
+                }
             } catch (error) {
-                logsWindow.innerHTML += "<br><span style='color: #f38ba8;'>[ERREUR] Impossible de contacter l'API.</span>";
+                errorMsg.style.display = 'block';
+                errorMsg.innerText = "Erreur de connexion au serveur.";
             }
         }
 
-        // Fonction pour récupérer la base de données
+        // Fonction de déconnexion
+        function logout() {
+            sessionStorage.removeItem('api_token');
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('password-input').value = '';
+        }
+
+        // Affiche le dashboard et charge les données
+        function showDashboard() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'grid';
+            refreshLogs();
+        }
+
+        // Récupérer le token pour les requêtes
+        function getAuthHeaders() {
+            return { 'Authorization': sessionStorage.getItem('api_token') };
+        }
+
+        // Rafraîchir les logs
+        async function refreshLogs() {
+            const logsWindow = document.getElementById('logs-window');
+            try {
+                const response = await fetch(`${API_URL}/api/logs`, { headers: getAuthHeaders() });
+                if (response.status === 401) return logout(); // Expulsé si mdp changé
+                
+                const data = await response.json();
+                logsWindow.innerHTML = data.logs.join('<br>');
+                logsWindow.scrollTop = logsWindow.scrollHeight;
+            } catch (error) {
+                logsWindow.innerHTML = "<span style='color: var(--danger);'>[ERREUR] Impossible de lire les logs.</span>";
+            }
+        }
+
+        // Rafraîchir la BDD
         async function refreshDB() {
             const dbContent = document.getElementById('db-content');
             dbContent.innerHTML = "<tr><td colspan='4'>Chargement en cours...</td></tr>";
 
             try {
-                const response = await fetch(`${API_URL}/database`);
+                const response = await fetch(`${API_URL}/api/database`, { headers: getAuthHeaders() });
+                if (response.status === 401) return logout();
+
                 const data = await response.json();
-                
                 let html = '';
                 data.entries.forEach(row => {
-                    html += `<tr>
-                        <td>${row.id}</td>
-                        <td>${row.user}</td>
-                        <td>${row.action}</td>
-                        <td>${row.date}</td>
-                    </tr>`;
+                    html += `<tr><td>${row.id || '-'}</td><td>${row.user || '-'}</td><td>${row.action || '-'}</td><td>${row.date || '-'}</td></tr>`;
                 });
                 dbContent.innerHTML = html || "<tr><td colspan='4'>La base de données est vide.</td></tr>";
             } catch (error) {
-                dbContent.innerHTML = "<tr><td colspan='4' style='color: #f38ba8;'>Erreur de connexion à l'API.</td></tr>";
+                dbContent.innerHTML = "<tr><td colspan='4' style='color: var(--danger);'>Erreur de connexion.</td></tr>";
             }
         }
     </script>
