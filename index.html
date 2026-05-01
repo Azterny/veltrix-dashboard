@@ -3,147 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Veltrix Control Panel</title>
+    <title>Veltrix Bot | Dashboard</title>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
-        .container { max-width: 800px; width: 100%; }
-        h1 { text-align: center; margin-bottom: 30px; }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .stat-box { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center; }
-        .stat-box span { display: block; font-size: 1.2rem; font-weight: bold; margin-top: 5px; color: var(--primary); }
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        :root {
+            --bg-main: #1e1e2e;
+            --bg-card: #313244;
+            --text-main: #cdd6f4;
+            --accent: #89b4fa;
+            --success: #a6e3a1;
+            --danger: #f38ba8;
+            --border: #45475a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--accent); }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+
+        .dot {
+            height: 12px; width: 12px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .card-header h2 { margin: 0; font-size: 1.2rem; }
+
+        button {
+            background-color: var(--accent);
+            color: var(--bg-main);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
         button:hover { opacity: 0.8; }
-        .btn-danger { background: var(--danger); }
-        .btn-success { background: var(--success); }
-        input { padding: 10px; border-radius: 6px; border: none; width: calc(100% - 20px); margin-bottom: 10px; background: #334155; color: white; }
-        .flex-input { display: flex; gap: 10px; }
-        .flex-input input { margin-bottom: 0; }
-        #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 50; }
+
+        /* Style pour la console des logs */
+        .logs-container {
+            background-color: #11111b;
+            color: var(--success);
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Style pour la base de données */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="card" style="width: 300px; text-align: center;">
-            <h2>Connexion</h2>
-            <input type="password" id="pwd" placeholder="Mot de passe API">
-            <button onclick="login()">Se connecter</button>
-        </div>
-    </div>
+    <div class="container">
+        <!-- En-tête -->
+        <header>
+            <h1>Veltrix Dashboard</h1>
+            <div class="status">
+                <span class="dot" id="status-dot"></span>
+                <span id="status-text">Bot En Ligne</span>
+            </div>
+        </header>
 
-    <div class="container" id="dashboard" style="display: none;">
-        <h1>🎛️ Veltrix Dashboard</h1>
-
+        <!-- Section Logs -->
         <div class="card">
-            <h3>📊 Système Raspberry Pi</h3>
-            <div class="grid">
-                <div class="stat-box">Statut Bot <span id="s-bot">Chargement...</span></div>
-                <div class="stat-box">Uptime Bot <span id="s-uptime">-</span></div>
-                <div class="stat-box">Stockage <span id="s-storage">-</span></div>
-                <div class="stat-box">RAM Utilisée <span id="s-ram">-</span></div>
-                <div class="stat-box">Charge CPU <span id="s-cpu">-</span></div>
+            <div class="card-header">
+                <h2>Terminal Logs</h2>
+                <button onclick="refreshLogs()">Actualiser les Logs</button>
+            </div>
+            <div class="logs-container" id="logs-window">
+                [SYSTEM] Initialisation du dashboard...<br>
+                [INFO] En attente de connexion avec l'API...
             </div>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h3>🤖 Contrôle du Bot</h3>
-                <button class="btn-success" onclick="action('start')" style="margin-bottom:10px;">▶ Démarrer</button>
-                <button class="btn-danger" onclick="action('stop')" style="margin-bottom:10px;">⏹ Arrêter</button>
-                <button onclick="action('restart')">🔄 Redémarrer</button>
+        <!-- Section Base de Données -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Aperçu de la Base de Données</h2>
+                <button onclick="refreshDB()">Charger la BDD</button>
             </div>
-
-            <div class="card">
-                <h3>⏱️ Planification</h3>
-                <label>Arrêter le bot dans X minutes :</label>
-                <div class="flex-input" style="margin-bottom:15px; margin-top:5px;">
-                    <input type="number" id="in-min" placeholder="Minutes">
-                    <button onclick="schedule('stopIn', 'in-min')">Go</button>
-                </div>
-                <label>Arrêter le bot pendant X minutes :</label>
-                <div class="flex-input" style="margin-top:5px;">
-                    <input type="number" id="for-min" placeholder="Minutes">
-                    <button onclick="schedule('stopFor', 'for-min')">Go</button>
-                </div>
-            </div>
-
-            <div class="card" style="grid-column: 1 / -1;">
-                <h3>⚠️ Système</h3>
-                <button class="btn-danger" onclick="rebootPi()">🛑 Redémarrer le Raspberry Pi (Reboot)</button>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Utilisateur (Discord)</th>
+                        <th>Action / Commande</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="db-content">
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #a6adc8;">
+                            Cliquez sur "Charger la BDD" pour afficher les données.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        // METS L'URL CLOUDFLARE DE TON API ICI :
-        const API_URL = "https://veltrix.brawl-track.com/api"; 
-        
-        let token = localStorage.getItem('veltrix_pwd') || "";
+        // --- ADRESSE DE TON API LOCALE ---
+        // Il faudra remplacer cette URL par l'adresse de ton API sur le PiZero (ex: ton tunnel Cloudflare pour l'API)
+        const API_URL = "https://api.ton-domaine.com"; 
 
-        if(token) showDashboard();
-
-        function login() {
-            token = document.getElementById('pwd').value;
-            localStorage.setItem('veltrix_pwd', token);
-            showDashboard();
-        }
-
-        function showDashboard() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            fetchStats();
-            setInterval(fetchStats, 10000); // Actualise toutes les 10 secondes
-        }
-
-        async function apiCall(endpoint, method = 'GET', body = null) {
-            const options = { method, headers: { 'Authorization': token, 'Content-Type': 'application/json' } };
-            if(body) options.body = JSON.stringify(body);
+        // Fonction pour récupérer les logs
+        async function refreshLogs() {
+            const logsWindow = document.getElementById('logs-window');
+            logsWindow.innerHTML += "<br>[SYS] Récupération des logs...";
             
             try {
-                const res = await fetch(API_URL + endpoint, options);
-                if (res.status === 401) {
-                    alert("Mot de passe invalide ou expiré !");
-                    localStorage.removeItem('veltrix_pwd');
-                    location.reload();
-                    return null;
-                }
-                return await res.json();
-            } catch (err) {
-                console.error(err);
-                return null;
+                // Appel à ton API Node.js (dashboard-api.service)
+                const response = await fetch(`${API_URL}/logs`);
+                const data = await response.json();
+                
+                logsWindow.innerHTML = data.logs.join('<br>');
+                // Scroll tout en bas automatiquement
+                logsWindow.scrollTop = logsWindow.scrollHeight;
+            } catch (error) {
+                logsWindow.innerHTML += "<br><span style='color: #f38ba8;'>[ERREUR] Impossible de contacter l'API.</span>";
             }
         }
 
-        async function fetchStats() {
-            const data = await apiCall('/stats');
-            if (data && !data.error) {
-                document.getElementById('s-bot').innerText = data.botStatus;
-                document.getElementById('s-bot').style.color = data.botStatus === 'En ligne' ? 'var(--success)' : 'var(--danger)';
-                document.getElementById('s-uptime').innerText = data.botUptime;
-                document.getElementById('s-storage').innerText = data.storage;
-                document.getElementById('s-ram').innerText = data.ram;
-                document.getElementById('s-cpu').innerText = data.cpu;
-            }
-        }
+        // Fonction pour récupérer la base de données
+        async function refreshDB() {
+            const dbContent = document.getElementById('db-content');
+            dbContent.innerHTML = "<tr><td colspan='4'>Chargement en cours...</td></tr>";
 
-        async function action(act) {
-            const data = await apiCall('/action', 'POST', { action: act });
-            if(data) { alert(data.message); fetchStats(); }
-        }
-
-        async function schedule(type, inputId) {
-            const minutes = document.getElementById(inputId).value;
-            if(!minutes || minutes <= 0) return alert("Mets un nombre de minutes valide.");
-            const data = await apiCall('/schedule', 'POST', { type, minutes: Number(minutes) });
-            if(data) { alert(data.message); document.getElementById(inputId).value = ''; }
-        }
-
-        async function rebootPi() {
-            if(confirm("Es-tu sûr de vouloir redémarrer complètement le Raspberry Pi ? Tu seras déconnecté un instant.")) {
-                await apiCall('/action', 'POST', { action: 'reboot' });
-                alert("Redémarrage en cours... Actualise dans 1 minute.");
+            try {
+                const response = await fetch(`${API_URL}/database`);
+                const data = await response.json();
+                
+                let html = '';
+                data.entries.forEach(row => {
+                    html += `<tr>
+                        <td>${row.id}</td>
+                        <td>${row.user}</td>
+                        <td>${row.action}</td>
+                        <td>${row.date}</td>
+                    </tr>`;
+                });
+                dbContent.innerHTML = html || "<tr><td colspan='4'>La base de données est vide.</td></tr>";
+            } catch (error) {
+                dbContent.innerHTML = "<tr><td colspan='4' style='color: #f38ba8;'>Erreur de connexion à l'API.</td></tr>";
             }
         }
     </script>
